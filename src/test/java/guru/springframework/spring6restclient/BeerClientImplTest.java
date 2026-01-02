@@ -3,6 +3,7 @@ package guru.springframework.spring6restclient;
 
 import guru.springframework.spring6restclient.client.BeerClientImpl;
 import guru.springframework.spring6restclient.model.BeerDTO;
+import guru.springframework.spring6restclient.model.BeerDTOPageImpl;
 import guru.springframework.spring6restclient.model.BeerStyle;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,7 +12,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
@@ -32,12 +36,12 @@ class BeerClientImplTest {
 
         BeerDTO beerDto = beerClient.createBeer(newDto);
 
-        beerClient.deleteBeer(beerDto.getId());
+        UUID uuid = beerDto.getId();
+        beerClient.deleteBeer(uuid);
 
-        assertThrows(HttpClientErrorException.class, () -> {
-            //should error
-            beerClient.getBeerById(beerDto.getId());
-        });
+        assertThatThrownBy(() -> beerClient.getBeerById(uuid))
+                .isInstanceOf(HttpClientErrorException.class);
+
     }
 
     @Test
@@ -90,12 +94,18 @@ class BeerClientImplTest {
     @Test
     void listBeersNoBeerName() {
 
-        beerClient.listBeers(null, null, null, null, null);
+        BeerDTOPageImpl beerDTOPage = beerClient.listBeers(null, null,
+                null, null, null);
+
+        assertThat(beerDTOPage.getContent()).hasSizeGreaterThan(0);
     }
 
     @Test
     void listBeers() {
 
-        beerClient.listBeers("ALE", null, null, null, null);
+        BeerDTOPageImpl beerDTOPage = beerClient.listBeers("ALE", null,
+                null, null, null);
+
+        assertThat(beerDTOPage.getContent()).hasSizeGreaterThan(0);
     }
 }
