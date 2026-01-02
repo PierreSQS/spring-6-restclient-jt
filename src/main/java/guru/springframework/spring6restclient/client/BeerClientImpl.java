@@ -79,6 +79,13 @@ public class BeerClientImpl implements BeerClient {
     @Override
     public void deleteBeer(UUID beerId) {
 
+        RestClient restClient = restClientBuilder.build();
+
+        restClient.delete()
+                .uri(GET_BEER_BY_ID_PATH, beerId)
+                .retrieve()
+                .toBodilessEntity();
+
     }
 }
 
