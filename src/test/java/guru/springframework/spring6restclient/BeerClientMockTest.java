@@ -1,7 +1,5 @@
 package guru.springframework.spring6restclient;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import guru.springframework.spring6restclient.client.BeerClient;
 import guru.springframework.spring6restclient.client.BeerClientImpl;
 import guru.springframework.spring6restclient.config.OAuthClientInterceptor;
@@ -13,11 +11,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
+import org.springframework.boot.restclient.RestTemplateBuilder;
+import org.springframework.boot.restclient.test.MockServerRestTemplateCustomizer;
+import org.springframework.boot.restclient.test.autoconfigure.RestClientTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.web.client.MockServerRestTemplateCustomizer;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
@@ -32,16 +29,18 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.math.BigDecimal;
 import java.net.URI;
 import java.time.Instant;
-import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -71,7 +70,7 @@ public class BeerClientMockTest {
     RestClient.Builder restClientBuilder;
 
     @Autowired
-    ObjectMapper objectMapper;
+    JsonMapper jsonMapper;
 
     @Mock
     RestTemplateBuilder mockRestTemplateBuilder = new RestTemplateBuilder(new MockServerRestTemplateCustomizer());
@@ -79,7 +78,7 @@ public class BeerClientMockTest {
     BeerDTO dto;
     String dtoJson;
 
-    @MockBean
+    @MockitoBean
     OAuth2AuthorizedClientManager manager;
 
     @TestConfiguration
@@ -111,7 +110,7 @@ public class BeerClientMockTest {
     ClientRegistrationRepository clientRegistrationRepository;
 
     @BeforeEach
-    void setUp() throws JsonProcessingException {
+    void setUp()  {
         ClientRegistration clientRegistration = clientRegistrationRepository
                 .findByRegistrationId("springauth");
 
@@ -128,14 +127,14 @@ public class BeerClientMockTest {
         //NOTE: RestClient is built using the mockRestTemplateBuilder.
         beerClient = new BeerClientImpl(RestClient.builder(mockRestTemplateBuilder.build()));
         dto = getBeerDto();
-        dtoJson = objectMapper.writeValueAsString(dto);
+        dtoJson = jsonMapper.writeValueAsString(dto);
     }
 
     @Test
-    void testListBeersWithQueryParam() throws JsonProcessingException {
-        String response = objectMapper.writeValueAsString(getPage());
+    void testListBeersWithQueryParam()  {
+        String response = jsonMapper.writeValueAsString(getPage());
 
-        URI uri = UriComponentsBuilder.fromHttpUrl(URL + BeerClientImpl.GET_BEER_PATH)
+        URI uri = UriComponentsBuilder.fromUriString(URL + BeerClientImpl.GET_BEER_PATH)
                 .queryParam("beerName", "ALE")
                 .build().toUri();
 
@@ -148,7 +147,7 @@ public class BeerClientMockTest {
         Page<BeerDTO> responsePage = beerClient
                 .listBeers("ALE", null, null, null, null);
 
-        assertThat(responsePage.getContent().size()).isEqualTo(1);
+        assertThat(responsePage.getContent()).hasSize(1);
     }
 
     @Test
@@ -159,9 +158,8 @@ public class BeerClientMockTest {
                 .andExpect(header("Authorization", BEARER_TEST))
                 .andRespond(withResourceNotFound());
 
-        assertThrows(HttpClientErrorException.class, () -> {
-            beerClient.deleteBeer(dto.getId());
-        });
+        UUID uuid = dto.getId();
+        assertThrows(HttpClientErrorException.class, () -> beerClient.deleteBeer(uuid));
 
         server.verify();
     }
@@ -228,15 +226,15 @@ public class BeerClientMockTest {
     }
 
     @Test
-    void testListBeers() throws JsonProcessingException {
-        String payload = objectMapper.writeValueAsString(getPage());
+    void testListBeers()  {
+        String payload = jsonMapper.writeValueAsString(getPage());
 
         server.expect(method(HttpMethod.GET))
                 .andExpect(requestTo(URL + BeerClientImpl.GET_BEER_PATH))
                 .andRespond(withSuccess(payload, MediaType.APPLICATION_JSON));
 
         Page<BeerDTO> dtos = beerClient.listBeers();
-        assertThat(dtos.getContent().size()).isGreaterThan(0);
+        assertThat(dtos.getContent()).hasSizeGreaterThan(0);
     }
 
     BeerDTO getBeerDto(){
@@ -250,7 +248,7 @@ public class BeerClientMockTest {
                 .build();
     }
 
-    BeerDTOPageImpl getPage(){
-        return new BeerDTOPageImpl(Arrays.asList(getBeerDto()), 1, 25, 1);
+    BeerDTOPageImpl<List<BeerDTO>> getPage(){
+        return new BeerDTOPageImpl<>(List.of(getBeerDto()), 1, 25, 1);
     }
 }

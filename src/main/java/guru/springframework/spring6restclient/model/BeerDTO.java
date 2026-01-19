@@ -1,7 +1,10 @@
 package guru.springframework.spring6restclient.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -10,8 +13,11 @@ import java.util.UUID;
 /**
  * Created by jt, Spring Framework Guru.
  */
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 @Builder
-@Data
 public class BeerDTO {
     private UUID id;
     private Integer version;
