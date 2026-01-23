@@ -12,14 +12,14 @@ import org.springframework.web.client.RestClient;
 import java.util.UUID;
 
 /**
- * Created by jt, Spring Framework Guru.
+ * Modified by Pierrot, 2026-01-23.
  */
 @Service
 @RequiredArgsConstructor
 public class BeerClientImpl implements BeerClient {
 
     public static final String GET_BEER_PATH = "/api/v1/beer";
-    public static final String GET_BEER_BY_ID_PATH = "/api/v1/beer/{beerId}";
+    public static final String GET_BEER_BY_ID_PATH = GET_BEER_PATH+"/{beerId}";
 
     private final RestClient.Builder restClientBuilder;
 
@@ -35,7 +35,11 @@ public class BeerClientImpl implements BeerClient {
 
     @Override
     public BeerDTO getBeerById(UUID beerId) {
-        return null;
+        RestClient restClient = restClientBuilder.build();
+        return restClient.get()
+                .uri(GET_BEER_BY_ID_PATH, beerId.toString())
+                .retrieve()
+                .body(BeerDTO.class);
     }
 
     @Override
@@ -50,6 +54,7 @@ public class BeerClientImpl implements BeerClient {
                 .getHeaders()
                 .getLocation();
 
+        assert location != null;
         return restClient.get()
                 .uri(location.getPath())
                 .retrieve()
