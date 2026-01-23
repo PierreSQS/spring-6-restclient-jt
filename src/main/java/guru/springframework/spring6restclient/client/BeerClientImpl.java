@@ -63,7 +63,15 @@ public class BeerClientImpl implements BeerClient {
 
     @Override
     public BeerDTO updateBeer(BeerDTO beerDto) {
-        return null;
+        RestClient restClient = restClientBuilder.build();
+
+        restClient.put()
+                .uri(GET_BEER_BY_ID_PATH, beerDto.getId().toString())
+                .body(beerDto)
+                .retrieve()
+                .body(BeerDTO.class);
+
+        return getBeerById(beerDto.getId());
     }
 
     @Override
