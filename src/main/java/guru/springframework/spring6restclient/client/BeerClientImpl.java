@@ -2,17 +2,20 @@ package guru.springframework.spring6restclient.client;
 
 
 import guru.springframework.spring6restclient.model.BeerDTO;
+import guru.springframework.spring6restclient.model.BeerDTOPageImpl;
 import guru.springframework.spring6restclient.model.BeerStyle;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.UUID;
 
 /**
- * Modified by Pierrot, 2026-01-23.
+ * Modified by Pierrot, 2026-01-24.
  */
 @Service
 @RequiredArgsConstructor
@@ -25,12 +28,41 @@ public class BeerClientImpl implements BeerClient {
 
     @Override
     public Page<BeerDTO> listBeers() {
-        return null;
+        return listBeers(null, null, null, null, null);
     }
 
     @Override
     public Page<BeerDTO> listBeers(String beerName, BeerStyle beerStyle, Boolean showInventory, Integer pageNumber, Integer pageSize) {
-        return null;
+        RestClient restClient = restClientBuilder.build();
+
+        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromPath(GET_BEER_PATH);
+
+        if(beerName != null){
+            uriBuilder.queryParam("beerName", beerName);
+        }
+
+        if(beerStyle != null){
+            uriBuilder.queryParam("beerStyle", beerStyle);
+        }
+
+        if(showInventory != null){
+            uriBuilder.queryParam("showInventory", showInventory);
+        }
+
+        if(pageNumber != null){
+            uriBuilder.queryParam("pageNumber", pageNumber);
+        }
+
+        if(pageSize != null){
+            uriBuilder.queryParam("pageSize", pageSize);
+        }
+
+        val beerPageType = new ParameterizedTypeReference<BeerDTOPageImpl>() {};
+
+        return restClient.get()
+                .uri(uriBuilder.build().toUri())
+                .retrieve()
+                .body(beerPageType);
     }
 
     @Override
