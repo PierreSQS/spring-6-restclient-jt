@@ -40,14 +40,15 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 
 /**
- * Modified by Anthropic Sonnet 4.5 on 21.01.2026.
+ * Corrected by Anthropic Sonnet 4.5 on 21.01.2026.
+ * Modified by Pierrot, 2026-01-24.
  * Updated for Spring Boot 4.0.1
  */
 @RestClientTest
@@ -152,7 +153,10 @@ public class BeerClientMockTest {
                 .andRespond(withResourceNotFound());
 
         UUID uuid = dto.getId();
-        assertThrows(HttpClientErrorException.class, () -> beerClient.deleteBeer(uuid));
+
+        assertThatThrownBy(() -> beerClient.deleteBeer(uuid))
+                .isInstanceOf(HttpClientErrorException.class)
+                .hasMessageContaining("404 Not Found");
 
         server.verify();
     }
