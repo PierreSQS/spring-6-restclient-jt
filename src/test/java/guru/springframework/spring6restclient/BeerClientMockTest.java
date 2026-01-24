@@ -3,7 +3,7 @@ package guru.springframework.spring6restclient;
 import guru.springframework.spring6restclient.client.BeerClient;
 import guru.springframework.spring6restclient.client.BeerClientImpl;
 import guru.springframework.spring6restclient.config.OAuthClientInterceptor;
-import guru.springframework.spring6restclient.config.RestTemplateBuilderConfig;
+import guru.springframework.spring6restclient.config.RestClientConfig;
 import guru.springframework.spring6restclient.model.BeerDTO;
 import guru.springframework.spring6restclient.model.BeerDTOPageImpl;
 import guru.springframework.spring6restclient.model.BeerStyle;
@@ -74,7 +74,7 @@ public class BeerClientMockTest {
     OAuth2AuthorizedClientManager manager;
 
     @TestConfiguration
-    @Import(RestTemplateBuilderConfig.class)
+    @Import(RestClientConfig.class)
     public static class TestConfig {
 
         @Bean
