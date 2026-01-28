@@ -9,7 +9,7 @@ import org.springframework.data.domain.PageRequest;
 import java.util.List;
 
 /**
- * Adapted by ChatGpt5.2, 2026-01-27.
+ * Adapted by ChatGPT 5.2, 2026-01-28.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BeerDTOPageImpl extends PageImpl<BeerDTO> {

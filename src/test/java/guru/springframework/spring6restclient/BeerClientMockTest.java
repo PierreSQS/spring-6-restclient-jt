@@ -36,6 +36,7 @@ import java.math.BigDecimal;
 import java.net.URI;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -250,11 +251,13 @@ public class BeerClientMockTest {
     private Object pagePayload() {
         BeerDTO beer = getBeerDto();
 
-        return java.util.Map.of(
+        return Map.of(
                 "content", List.of(beer),
-                "number", 1,
-                "size", 25,
-                "totalElements", 1
+                "page", Map.of(
+                        "number", 1,
+                        "size", 25,
+                        "totalElements", 1
+                )
         );
     }
 
