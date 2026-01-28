@@ -5,7 +5,6 @@ import guru.springframework.spring6restclient.client.BeerClientImpl;
 import guru.springframework.spring6restclient.config.OAuthClientInterceptor;
 import guru.springframework.spring6restclient.config.RestClientConfig;
 import guru.springframework.spring6restclient.model.BeerDTO;
-import guru.springframework.spring6restclient.model.BeerDTOPageImpl;
 import guru.springframework.spring6restclient.model.BeerStyle;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,7 +48,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 /**
  * Corrected by Anthropic Sonnet 4.5 on 21.01.2026.
  * Modified by Pierrot, 2026-01-24.
- * Updated for Spring Boot 4.0.1
+ * Updated for Spring Boot 4.0.2
  */
 @RestClientTest
 public class BeerClientMockTest {
@@ -125,7 +124,7 @@ public class BeerClientMockTest {
 
     @Test
     void testListBeersWithQueryParam() {
-        String response = jsonMapper.writeValueAsString(getPage());
+        String response = jsonMapper.writeValueAsString(pagePayload());
 
         URI uri = UriComponentsBuilder.fromUriString(URL + BeerClientImpl.GET_BEER_PATH)
                 .queryParam("beerName", "ALE")
@@ -225,7 +224,7 @@ public class BeerClientMockTest {
 
     @Test
     void testListBeers() {
-        String payload = jsonMapper.writeValueAsString(getPage());
+        String payload = jsonMapper.writeValueAsString(pagePayload());
 
         server.expect(method(HttpMethod.GET))
                 .andExpect(requestTo(URL + BeerClientImpl.GET_BEER_PATH))
@@ -248,7 +247,15 @@ public class BeerClientMockTest {
                 .build();
     }
 
-    BeerDTOPageImpl<List<BeerDTO>> getPage(){
-        return new BeerDTOPageImpl<>(List.of(getBeerDto()), 1, 25, 1);
+    private Object pagePayload() {
+        BeerDTO beer = getBeerDto();
+
+        return java.util.Map.of(
+                "content", List.of(beer),
+                "number", 1,
+                "size", 25,
+                "totalElements", 1
+        );
     }
+
 }
