@@ -12,11 +12,12 @@ import org.springframework.web.client.RestClient;
 
 /**
  * Adapted by Anthropic Sonnet 4.5, 2026-01-24.
+ * Updated by Pierrot, 2026-01-29
  */
 @Configuration
 public class RestClientConfig {
 
-    @Value("${rest.template.rootUrl}")
+    @Value("${restclient.rootUrl}")
     String rootUrl;
 
     @Bean
