@@ -2,7 +2,6 @@ package guru.springframework.spring6restclient;
 
 import guru.springframework.spring6restclient.client.BeerClient;
 import guru.springframework.spring6restclient.client.BeerClientImpl;
-import guru.springframework.spring6restclient.config.OAuthClientInterceptor;
 import guru.springframework.spring6restclient.config.RestClientConfig;
 import guru.springframework.spring6restclient.model.BeerDTO;
 import guru.springframework.spring6restclient.model.BeerStyle;
@@ -17,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.client.InMemoryOAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
@@ -47,9 +47,27 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 
 /**
- * Corrected by Anthropic Sonnet 4.5 on 21.01.2026.
- * Modified by Pierrot, 2026-01-24.
- * Updated for Spring Boot 4.0.2
+ * Mock tests for BeerClient using Spring Boot 4.0.2 and Spring Security 7.0.
+ * <p>
+ * This test class uses @RestClientTest slice to test RestClient with OAuth2 authentication
+ * without requiring an actual OAuth2 authorization server.
+ * <p>
+ * Key Testing Components:
+ * - MockRestServiceServer: Simulates HTTP responses without real network calls
+ * - JsonMapper: Jackson 3 (tools.jackson.*) for JSON serialization
+ * - @MockitoBean OAuth2AuthorizedClientManager: Mocked to return test tokens
+ * - TestConfiguration: Provides minimal beans needed for OAuth2 RestClient testing
+ * <p>
+ * Configuration Approach:
+ * - Imports RestClientConfig which provides OAuth2ClientHttpRequestInterceptor
+ * - Provides ClientRegistrationRepository for OAuth2 client configuration
+ * - Provides OAuth2AuthorizedClientService for token caching (required by manager)
+ * - No custom interceptor needed - RestClientConfig provides Spring Security's built-in
+ *
+ * @author Updated for Spring Boot 4.x using OAuth2ClientHttpRequestInterceptor
+ * @author Modified by Claude (Anthropic), 2026-02-12
+ * @author Fixed and verified by Claude (Anthropic), 2026-02-14
+ * @version Spring Boot 4.0.2, Spring Security 7.0, Jackson 3
  */
 @RestClientTest
 public class BeerClientMockTest {
@@ -65,18 +83,37 @@ public class BeerClientMockTest {
     RestClient.Builder restClientBuilder;
 
     @Autowired
-    JsonMapper jsonMapper;
+    JsonMapper jsonMapper;  // Jackson 3: tools.jackson.databind.json.JsonMapper
 
     BeerDTO dto;
     String dtoJson;
 
     @MockitoBean
-    OAuth2AuthorizedClientManager manager;
+    OAuth2AuthorizedClientManager authorizedClientManager;
 
+    /**
+     * Test configuration that provides minimal beans for OAuth2 RestClient testing.
+     * <p>
+     * Imports RestClientConfig which provides:
+     * - OAuth2AuthorizedClientManager (created from mocked bean above)
+     * - OAuth2ClientHttpRequestInterceptor (Spring Security 7.0 built-in)
+     * - RestClient.Builder configured with OAuth2 support
+     * <p>
+     * Provides test-specific beans:
+     * - ClientRegistrationRepository: In-memory repository with test OAuth2 client registration
+     * - OAuth2AuthorizedClientService: Required by AuthorizedClientServiceOAuth2AuthorizedClientManager
+     *   for token caching and management
+     */
     @TestConfiguration
     @Import(RestClientConfig.class)
     public static class TestConfig {
 
+        /**
+         * Provides a test OAuth2 client registration for "springauth".
+         * This matches the registration ID used in application.properties.
+         *
+         * @return In-memory client registration repository with test configuration
+         */
         @Bean
         ClientRegistrationRepository clientRegistrationRepository() {
             return new InMemoryClientRegistrationRepository(ClientRegistration
@@ -87,36 +124,63 @@ public class BeerClientMockTest {
                     .build());
         }
 
+        /**
+         * Provides OAuth2AuthorizedClientService for storing authorized clients.
+         * This is required by AuthorizedClientServiceOAuth2AuthorizedClientManager
+         * for token caching and lifecycle management.
+         * <p>
+         * In tests, we use in-memory implementation. In production, this would
+         * cache tokens to avoid repeated authorization server calls.
+         *
+         * @param clientRegistrationRepository The client registration repository
+         * @return In-memory OAuth2 authorized client service
+         */
         @Bean
-        OAuth2AuthorizedClientService auth2AuthorizedClientService(ClientRegistrationRepository clientRegistrationRepository){
+        OAuth2AuthorizedClientService oAuth2AuthorizedClientService(
+                ClientRegistrationRepository clientRegistrationRepository) {
             return new InMemoryOAuth2AuthorizedClientService(clientRegistrationRepository);
-        }
-
-        @Bean
-        OAuthClientInterceptor oAuthClientInterceptor(OAuth2AuthorizedClientManager manager,
-                                                      ClientRegistrationRepository clientRegistrationRepository){
-            return new OAuthClientInterceptor(manager, clientRegistrationRepository);
         }
     }
 
     @Autowired
     ClientRegistrationRepository clientRegistrationRepository;
 
+    /**
+     * Set up method executed before each test.
+     * <p>
+     * Configures:
+     * 1. Mock OAuth2 token that will be used in test requests
+     * 2. MockRestServiceServer bound to RestClient.Builder
+     * 3. BeerClient instance with configured RestClient.Builder
+     * 4. Test DTO and its JSON representation
+     */
     @BeforeEach
     void setUp() {
         ClientRegistration clientRegistration = clientRegistrationRepository
                 .findByRegistrationId("springauth");
 
-        OAuth2AccessToken token = new OAuth2AccessToken(OAuth2AccessToken.TokenType.BEARER,
-                "test", Instant.MIN, Instant.MAX);
+        OAuth2AccessToken token = new OAuth2AccessToken(
+                OAuth2AccessToken.TokenType.BEARER,
+                "test",
+                Instant.MIN,
+                Instant.MAX
+        );
 
-        when(manager.authorize(any())).thenReturn(new OAuth2AuthorizedClient(clientRegistration,
-                "test", token));
+        // Mock the OAuth2AuthorizedClientManager to return an authorized client
+        // This simulates successful OAuth2 token acquisition
+        when(authorizedClientManager.authorize(any(OAuth2AuthorizeRequest.class)))
+                .thenReturn(new OAuth2AuthorizedClient(
+                        clientRegistration,
+                        "test",
+                        token
+                ));
 
         // Bind MockRestServiceServer to the RestClient.Builder
+        // This allows us to mock HTTP responses without actual network calls
         server = MockRestServiceServer.bindTo(restClientBuilder).build();
 
         // Create BeerClient with the configured RestClient.Builder
+        // The builder already has OAuth2ClientHttpRequestInterceptor configured
         beerClient = new BeerClientImpl(restClientBuilder);
 
         dto = getBeerDto();
